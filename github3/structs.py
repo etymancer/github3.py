@@ -29,6 +29,8 @@ class GitHubIterator(GitHubCore, Iterator):
         # that's not what we want.
         #: The ETag Header value returned by GitHub
         self.etag = None
+        #: For storing the previous etag when refreshing
+        self.last_etag = None
         #: Headers generated for the GET request
         self.headers = headers or {}
         #: The last response seen
@@ -62,8 +64,8 @@ class GitHubIterator(GitHubCore, Iterator):
             if params:
                 params = None  # rel_next already has the params
 
-            if not self.etag and response.headers.get('ETag'):
-                self.etag = response.headers.get('ETag')
+            if not self.etag:
+                self.etag = response.headers.get('ETag') or self.last_etag
 
             json = self._get_json(response)
 
@@ -99,7 +101,7 @@ class GitHubIterator(GitHubCore, Iterator):
         self.count = self.original
         if conditional:
             self.headers['If-None-Match'] = self.etag
-        self.etag = None
+        self.last_etag, self.etag = self.etag, None
         self.__i__ = self.__iter__()
         return self
 
